@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CourseType {
+  COACHING
+  MEMBERSHIP
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  name        String
+  courseType  CourseType @default(COACHING)
+  coachName   String
+  days        String
+  startTime   String
+  endTime     String
+  duration    Int
+  monthlyFee  Int
+  maxCapacity Int
+  enrolled    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  students    Student[]
+
+  @@map("courses")
+}
+
+model Student {
+  id                    String        @id @default(cuid())
+  fullName              String
+  email                 String        @unique
+  phoneNumber           String
+  address               String
+  photoUrl              String
+  registeredAt          DateTime      @default(now())
+  courseEndAt           DateTime
+  status                StudentStatus @default(ACTIVE)
+  twoDaysReminderSentAt DateTime?
+  oneDayReminderCount   Int           @default(0)
+  finalDayReminderCount Int           @default(0)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  courseId              String
+  course                Course        @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  @@index([fullName])
+  @@map("students")
+}

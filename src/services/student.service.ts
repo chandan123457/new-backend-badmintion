@@ -22,6 +22,7 @@ function formatStudent(student: StudentWithCourse) {
     address: student.address,
     photoUrl: student.photoUrl,
     registeredAt: student.registeredAt,
+    lastReactivatedAt: student.lastReactivatedAt,
     courseEndAt: student.courseEndAt,
     createdAt: student.createdAt,
     updatedAt: student.updatedAt,
@@ -99,6 +100,84 @@ export async function createStudent(input: CreateStudentInput) {
   const refreshedStudent = await prisma.student.findUniqueOrThrow({
     where: {
       id: student.id
+    },
+    include: {
+      course: true
+    }
+  });
+
+  return formatStudent(refreshedStudent);
+}
+
+export async function reactivateStudent(studentId: string, courseId: string) {
+  const student = await prisma.student.findUniqueOrThrow({
+    where: {
+      id: studentId
+    },
+    include: {
+      course: true
+    }
+  });
+  const nextCourse = await prisma.course.findFirstOrThrow({
+    where: {
+      id: courseId,
+      deletedAt: null
+    }
+  });
+
+  // Renewal starts today, so the new expiry is today + the chosen course duration.
+  const reactivatedAt = new Date();
+  const courseEndAt = addMonths(reactivatedAt, nextCourse.duration);
+  const hasCourseChanged = student.courseId !== courseId;
+
+  const operations: Prisma.PrismaPromise<unknown>[] = [
+    prisma.student.update({
+      where: {
+        id: studentId
+      },
+      data: {
+        courseId,
+        courseEndAt,
+        lastReactivatedAt: reactivatedAt,
+        status: getMembershipStatus(courseEndAt),
+        // Re-arm the reminder pipeline for the fresh cycle.
+        twoDaysReminderSentAt: null,
+        oneDayReminderCount: 0,
+        finalDayReminderCount: 0
+      }
+    })
+  ];
+
+  if (hasCourseChanged) {
+    operations.push(
+      prisma.course.update({
+        where: {
+          id: student.courseId
+        },
+        data: {
+          enrolled: {
+            decrement: student.course.enrolled > 0 ? 1 : 0
+          }
+        }
+      }),
+      prisma.course.update({
+        where: {
+          id: courseId
+        },
+        data: {
+          enrolled: {
+            increment: 1
+          }
+        }
+      })
+    );
+  }
+
+  await prisma.$transaction(operations);
+
+  const refreshedStudent = await prisma.student.findUniqueOrThrow({
+    where: {
+      id: studentId
     },
     include: {
       course: true

@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { createStudent, getStudent, listStudents, removeStudent } from '../services/student.service';
+import { createStudent, getStudent, listStudents, reactivateStudent, removeStudent } from '../services/student.service';
 
 const createStudentSchema = z.object({
   fullName: z.string().min(2),
@@ -9,6 +9,10 @@ const createStudentSchema = z.object({
   phoneNumber: z.string().min(7),
   address: z.string().min(4),
   photoUrl: z.string().url(),
+  courseId: z.string().min(1)
+});
+
+const reactivateStudentSchema = z.object({
   courseId: z.string().min(1)
 });
 
@@ -72,6 +76,38 @@ export async function postStudent(request: Request, response: Response) {
 
     response.status(500).json({
       message: 'Unable to complete registration right now.'
+    });
+  }
+}
+
+export async function patchStudentReactivation(request: Request<{ studentId: string }>, response: Response) {
+  const parsed = reactivateStudentSchema.safeParse(request.body);
+
+  if (!parsed.success) {
+    response.status(400).json({
+      message: 'Invalid reactivation payload',
+      errors: parsed.error.flatten()
+    });
+    return;
+  }
+
+  try {
+    const student = await reactivateStudent(request.params.studentId, parsed.data.courseId);
+
+    response.json({
+      data: student
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      response.status(404).json({
+        message: 'Student or selected course not found.'
+      });
+      return;
+    }
+
+    console.error('Failed to reactivate student', error);
+    response.status(500).json({
+      message: 'Unable to reactivate student right now.'
     });
   }
 }

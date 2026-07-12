@@ -29,6 +29,7 @@ model Course {
   monthlyFee  Int
   maxCapacity Int
   enrolled    Int      @default(0)
+  deletedAt   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   students    Student[]
@@ -44,6 +45,7 @@ model Student {
   address               String
   photoUrl              String
   registeredAt          DateTime      @default(now())
+  lastReactivatedAt     DateTime?
   courseEndAt           DateTime
   status                StudentStatus @default(ACTIVE)
   twoDaysReminderSentAt DateTime?

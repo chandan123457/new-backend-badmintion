@@ -1,7 +1,14 @@
 import type { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { createStudent, getStudent, listStudents, reactivateStudent, removeStudent } from '../services/student.service';
+import {
+  createStudent,
+  getStudent,
+  listStudents,
+  markStudentPaymentAsPaid,
+  reactivateStudent,
+  removeStudent
+} from '../services/student.service';
 
 const createStudentSchema = z.object({
   fullName: z.string().min(2),
@@ -108,6 +115,28 @@ export async function patchStudentReactivation(request: Request<{ studentId: str
     console.error('Failed to reactivate student', error);
     response.status(500).json({
       message: 'Unable to reactivate student right now.'
+    });
+  }
+}
+
+export async function patchStudentPayment(request: Request<{ studentId: string }>, response: Response) {
+  try {
+    const student = await markStudentPaymentAsPaid(request.params.studentId);
+
+    response.json({
+      data: student
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      response.status(404).json({
+        message: 'Student not found.'
+      });
+      return;
+    }
+
+    console.error('Failed to mark student payment as paid', error);
+    response.status(500).json({
+      message: 'Unable to update payment status right now.'
     });
   }
 }

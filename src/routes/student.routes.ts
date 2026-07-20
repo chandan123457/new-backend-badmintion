@@ -3,6 +3,7 @@ import {
   deleteStudentById,
   getStudentById,
   getStudents,
+  patchStudentPayment,
   patchStudentReactivation,
   postStudent
 } from '../controllers/student.controller';
@@ -13,4 +14,5 @@ studentRouter.get('/', getStudents);
 studentRouter.get('/:studentId', getStudentById);
 studentRouter.post('/', postStudent);
 studentRouter.patch('/:studentId/reactivate', patchStudentReactivation);
+studentRouter.patch('/:studentId/payment', patchStudentPayment);
 studentRouter.delete('/:studentId', deleteStudentById);

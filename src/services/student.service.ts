@@ -1,7 +1,8 @@
-import type { Prisma } from '@prisma/client';
+import { PaymentStatus, type Prisma } from '@prisma/client';
 import { addMonths } from '../lib/date';
 import { prisma } from '../lib/prisma';
 import { getDaysRemaining, getMembershipStatus } from './reminder.service';
+import { sendPaymentConfirmationOnWhatsApp, sendPaymentQrOnWhatsApp } from './whatsapp.service';
 import type { CreateStudentInput } from '../types/student';
 
 type StudentWithCourse = Prisma.StudentGetPayload<{
@@ -28,6 +29,7 @@ function formatStudent(student: StudentWithCourse) {
     updatedAt: student.updatedAt,
     courseId: student.courseId,
     status,
+    paymentStatus: student.paymentStatus,
     daysRemaining,
     course: {
       id: student.course.id,
@@ -106,6 +108,15 @@ export async function createStudent(input: CreateStudentInput) {
     }
   });
 
+  // Best-effort: a WhatsApp delivery failure must never fail registration itself.
+  void sendPaymentQrOnWhatsApp({
+    fullName: refreshedStudent.fullName,
+    phoneNumber: refreshedStudent.phoneNumber,
+    monthlyFee: refreshedStudent.course.monthlyFee
+  }).catch((error) => {
+    console.error(`Failed to send payment QR on WhatsApp for student ${refreshedStudent.id}`, error);
+  });
+
   return formatStudent(refreshedStudent);
 }
 
@@ -140,6 +151,8 @@ export async function reactivateStudent(studentId: string, courseId: string) {
         courseEndAt,
         lastReactivatedAt: reactivatedAt,
         status: getMembershipStatus(courseEndAt),
+        // A renewal always needs a fresh payment.
+        paymentStatus: PaymentStatus.PENDING,
         // Re-arm the reminder pipeline for the fresh cycle.
         twoDaysReminderSentAt: null,
         oneDayReminderCount: 0,
@@ -184,7 +197,42 @@ export async function reactivateStudent(studentId: string, courseId: string) {
     }
   });
 
+  // Best-effort: a WhatsApp delivery failure must never fail reactivation itself.
+  void sendPaymentQrOnWhatsApp({
+    fullName: refreshedStudent.fullName,
+    phoneNumber: refreshedStudent.phoneNumber,
+    monthlyFee: nextCourse.monthlyFee
+  }).catch((error) => {
+    console.error(`Failed to send payment QR on WhatsApp for reactivated student ${refreshedStudent.id}`, error);
+  });
+
   return formatStudent(refreshedStudent);
+}
+
+export async function markStudentPaymentAsPaid(studentId: string) {
+  const student = await prisma.student.update({
+    where: {
+      id: studentId
+    },
+    data: {
+      paymentStatus: PaymentStatus.PAID
+    },
+    include: {
+      course: true
+    }
+  });
+
+  // Best-effort: confirm access on WhatsApp. A delivery failure must never fail
+  // the payment update itself.
+  void sendPaymentConfirmationOnWhatsApp({
+    fullName: student.fullName,
+    phoneNumber: student.phoneNumber,
+    courseName: student.course.name
+  }).catch((error) => {
+    console.error(`Failed to send payment confirmation on WhatsApp for student ${student.id}`, error);
+  });
+
+  return formatStudent(student);
 }
 
 export async function getStudent(studentId: string) {

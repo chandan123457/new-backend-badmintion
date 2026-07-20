@@ -8,7 +8,7 @@ const indianDateFormatter = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric'
 });
 
-function sanitizeIndianPhoneNumber(phoneNumber: string) {
+export function sanitizeIndianPhoneNumber(phoneNumber: string) {
   const digits = phoneNumber.replace(/\D/g, '');
 
   if (digits.length === 10) {

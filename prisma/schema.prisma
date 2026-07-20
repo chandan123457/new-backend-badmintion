@@ -17,6 +17,11 @@ enum CourseType {
   MEMBERSHIP
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
 model Course {
   id          String   @id @default(cuid())
   name        String
@@ -48,6 +53,7 @@ model Student {
   lastReactivatedAt     DateTime?
   courseEndAt           DateTime
   status                StudentStatus @default(ACTIVE)
+  paymentStatus         PaymentStatus @default(PENDING)
   twoDaysReminderSentAt DateTime?
   oneDayReminderCount   Int           @default(0)
   finalDayReminderCount Int           @default(0)

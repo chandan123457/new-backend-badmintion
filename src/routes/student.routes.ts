@@ -7,12 +7,13 @@ import {
   patchStudentReactivation,
   postStudent
 } from '../controllers/student.controller';
+import { asyncHandler } from '../lib/async-handler';
 
 export const studentRouter = Router();
 
-studentRouter.get('/', getStudents);
-studentRouter.get('/:studentId', getStudentById);
-studentRouter.post('/', postStudent);
-studentRouter.patch('/:studentId/reactivate', patchStudentReactivation);
-studentRouter.patch('/:studentId/payment', patchStudentPayment);
-studentRouter.delete('/:studentId', deleteStudentById);
+studentRouter.get('/', asyncHandler(getStudents));
+studentRouter.get('/:studentId', asyncHandler(getStudentById));
+studentRouter.post('/', asyncHandler(postStudent));
+studentRouter.patch('/:studentId/reactivate', asyncHandler(patchStudentReactivation));
+studentRouter.patch('/:studentId/payment', asyncHandler(patchStudentPayment));
+studentRouter.delete('/:studentId', asyncHandler(deleteStudentById));

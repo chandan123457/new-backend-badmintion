@@ -45,9 +45,11 @@ model Course {
 model Student {
   id                    String        @id @default(cuid())
   fullName              String
-  email                 String        @unique
+  // Optional: a student can be registered with just a phone number. NULL is
+  // allowed many times over by the unique index, an empty string would not be.
+  email                 String?       @unique
   phoneNumber           String
-  address               String
+  address               String        @default("")
   photoUrl              String
   registeredAt          DateTime      @default(now())
   lastReactivatedAt     DateTime?

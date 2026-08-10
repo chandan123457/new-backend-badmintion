@@ -1,8 +1,10 @@
 import { Router } from 'express';
-import { deleteCourseById, getCourses, postCourse } from '../controllers/course.controller';
+import { deleteCourseById, getCourses, patchCourse, postCourse } from '../controllers/course.controller';
+import { asyncHandler } from '../lib/async-handler';
 
 export const courseRouter = Router();
 
-courseRouter.get('/', getCourses);
-courseRouter.post('/', postCourse);
-courseRouter.delete('/:courseId', deleteCourseById);
+courseRouter.get('/', asyncHandler(getCourses));
+courseRouter.post('/', asyncHandler(postCourse));
+courseRouter.patch('/:courseId', asyncHandler(patchCourse));
+courseRouter.delete('/:courseId', asyncHandler(deleteCourseById));

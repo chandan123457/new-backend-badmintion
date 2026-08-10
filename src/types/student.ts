@@ -1,8 +1,9 @@
 export type CreateStudentInput = {
   fullName: string;
-  email: string;
   phoneNumber: string;
-  address: string;
   photoUrl: string;
   courseId: string;
+  // Optional: registration only needs a name, phone, photo and course.
+  email?: string;
+  address?: string;
 };

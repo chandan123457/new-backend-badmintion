@@ -80,6 +80,10 @@ export async function createStudent(input: CreateStudentInput) {
     prisma.student.create({
       data: {
         ...input,
+        // Left blank on the form: store NULL for email (the unique index allows
+        // many) and an empty address rather than rejecting the registration.
+        email: input.email ?? null,
+        address: input.address ?? '',
         courseEndAt,
         status: getMembershipStatus(courseEndAt)
       },

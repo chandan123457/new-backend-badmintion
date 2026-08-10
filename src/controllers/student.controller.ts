@@ -10,13 +10,25 @@ import {
   removeStudent
 } from '../services/student.service';
 
+// Blank input from the app means "not provided", not an invalid value.
+const optionalEmail = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim().length === 0 ? undefined : value),
+  z.string().email().optional()
+);
+
+const optionalAddress = z
+  .string()
+  .trim()
+  .optional()
+  .transform((value) => (value && value.length > 0 ? value : undefined));
+
 const createStudentSchema = z.object({
   fullName: z.string().min(2),
-  email: z.string().email(),
   phoneNumber: z.string().min(7),
-  address: z.string().min(4),
   photoUrl: z.string().url(),
-  courseId: z.string().min(1)
+  courseId: z.string().min(1),
+  email: optionalEmail,
+  address: optionalAddress
 });
 
 const reactivateStudentSchema = z.object({
